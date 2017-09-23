@@ -1,2 +1,2 @@
-./server/node_modules
-./server/nohup.out
+/server/node_modules
+/server/nohup.out
