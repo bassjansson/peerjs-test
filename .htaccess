@@ -1,0 +1,15 @@
+# Prevents Apache from serving .htaccess files
+<FilesMatch "^\.htaccess">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+
+# Redirects http to https
+RewriteEngine On
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*) https://%{SERVER_NAME}%{REQUEST_URI} [L,R=301]
+
+
+# Enables HSTS
+Header set Strict-Transport-Security "max-age=31536000" env=HTTPS
