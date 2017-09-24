@@ -3,6 +3,7 @@
   <title>Vera</title>
   <link rel="stylesheet" href="../styles/style.css">
   <script type="text/javascript" src="../libs/jquery.min.js"></script>
+  <script type="text/javascript" src="../libs/adapter.js"></script>
   <script type="text/javascript" src="../libs/peer.min.js"></script>
   <script>
 
@@ -101,6 +102,7 @@
 
             video.onloadedmetadata = function(e) { video.play(); };
 
+            window.localStream = stream;
             step2();
         })
         .catch(function(err)
@@ -121,8 +123,22 @@
       }
 
       // Wait for stream on the call, then set peer video display
-      call.on('stream', function(stream){
-        $('#their-video').prop('src', URL.createObjectURL(stream));
+      call.on('stream', function(stream)
+      {
+        var video = document.querySelector('#their-video');
+
+        // Older browsers may not have srcObject
+        if ("srcObject" in video)
+        {
+            video.srcObject = stream;
+        }
+        else
+        {
+            // Avoid using this in new browsers, as it is going away.
+            video.src = window.URL.createObjectURL(stream);
+        }
+
+        video.onloadedmetadata = function(e) { video.play(); };
       });
 
       // UI stuff
