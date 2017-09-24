@@ -97,13 +97,13 @@
         window.existingCall.close();
       }
 
-      // Wait for stream on the call, then set peer video display
+      // Wait for stream on the call, then set peer audio
       call.on('stream', function(stream)
       {
         var audio = document.querySelector('#their-audio');
 
         // Older browsers may not have srcObject
-        if ("srcObject" in video)
+        if ("srcObject" in audio)
         {
             audio.srcObject = stream;
         }
@@ -114,7 +114,7 @@
         }
 
         // Needed?
-        //video.onloadedmetadata = function(e) { video.play(); };
+        //audio.onloadedmetadata = function(e) { audio.play(); };
       });
 
       // UI stuff
@@ -134,9 +134,9 @@
 
   <div class="pure-g">
 
-      <!-- Video area -->
-      <div class="pure-u-2-3" id="video-container">
-        <video id="their-audio" playsinline autoplay></video>
+      <!-- Audio area -->
+      <div class="pure-u-2-3" id="audio-container">
+        <audio id="their-audio" controls playsinline autoplay></audio>
       </div>
 
       <!-- Steps -->
