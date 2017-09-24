@@ -7,6 +7,39 @@
   <script type="text/javascript" src="../libs/peer.min.js"></script>
   <script>
 
+    /*
+     * The following should be done by adapter.js
+     *
+
+    // Compatibility shim
+    // Older browsers might not implement mediaDevices at all, so we set an empty object first
+    if (navigator.mediaDevices === undefined) {
+      navigator.mediaDevices = {};
+    }
+
+    // Some browsers partially implement mediaDevices. We can't just assign an object
+    // with getUserMedia as it would overwrite existing properties.
+    // Here, we will just add the getUserMedia property if it's missing.
+    if (navigator.mediaDevices.getUserMedia === undefined) {
+      navigator.mediaDevices.getUserMedia = function(constraints) {
+
+        // First get ahold of the legacy getUserMedia, if present
+        var getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+
+        // Some browsers just don't implement it - return a rejected promise with an error
+        // to keep a consistent interface
+        if (!getUserMedia) {
+          return Promise.reject(new Error('getUserMedia is not implemented in this browser'));
+        }
+
+        // Otherwise, wrap the call to the old navigator.getUserMedia with a Promise
+        return new Promise(function(resolve, reject) {
+          getUserMedia.call(navigator, constraints, resolve, reject);
+        });
+      }
+    }
+    */
+
     // Random ID
     var randomID = Math.floor(Math.random() * 1000);
 
@@ -20,7 +53,7 @@
     // Receiving a call
     peer.on('call', function(call){
       // Answer the call automatically (instead of prompting user) for demo purposes
-      call.answer(window.stream);
+      call.answer(window.localStream);
       step3(call);
     });
     peer.on('error', function(err){
@@ -33,7 +66,7 @@
     $(function(){
       $('#make-call').click(function(){
         // Initiate a call!
-        var call = peer.call($('#callto-id').val(), window.stream);
+        var call = peer.call($('#callto-id').val(), window.localStream);
 
         step3(call);
       });
@@ -55,35 +88,32 @@
 
     function step1()
     {
-        var constraints = window.constraints = { audio: true, video: false };
-
-        function handleSuccess(stream)
+        // Get audio/video stream
+        navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        .then(function(stream)
         {
-          var audioTracks = stream.getAudioTracks();
+            var video = document.querySelector('#my-video');
 
-          console.log('Got stream with constraints:', constraints);
-          console.log('Using audio device: ' + audioTracks[0].label);
+            // Older browsers may not have srcObject
+            if ("srcObject" in video)
+            {
+                video.srcObject = stream;
+            }
+            else
+            {
+                // Avoid using this in new browsers, as it is going away.
+                video.src = window.URL.createObjectURL(stream);
+            }
 
-          stream.oninactive = function()
-          {
-            console.log('Stream ended');
-          };
+            video.onloadedmetadata = function(e) { video.play(); };
 
-          window.stream = stream; // make variable available to browser console
-
-          step2();
-        }
-
-        function handleError(error)
+            window.localStream = stream;
+            step2();
+        })
+        .catch(function(err)
         {
-          console.log('navigator.getUserMedia error: ', error);
-        }
-
-        // Get audio stream
-        navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then(handleSuccess)
-        .catch(handleError);
+            console.log(err.name + ": " + err.message);
+        });
     }
 
     function step2 () {
@@ -100,21 +130,20 @@
       // Wait for stream on the call, then set peer video display
       call.on('stream', function(stream)
       {
-        var audio = document.querySelector('#their-audio');
+        var video = document.querySelector('#their-video');
 
         // Older browsers may not have srcObject
         if ("srcObject" in video)
         {
-            audio.srcObject = stream;
+            video.srcObject = stream;
         }
         else
         {
             // Avoid using this in new browsers, as it is going away.
-            audio.src = window.URL.createObjectURL(stream);
+            video.src = window.URL.createObjectURL(stream);
         }
 
-        // Needed?
-        //video.onloadedmetadata = function(e) { video.play(); };
+        video.onloadedmetadata = function(e) { video.play(); };
       });
 
       // UI stuff
@@ -136,12 +165,13 @@
 
       <!-- Video area -->
       <div class="pure-u-2-3" id="video-container">
-        <video id="their-audio" playsinline autoplay></video>
+        <video id="their-video" playsinline autoplay></video>
+        <video id="my-video" muted playsinline autoplay></video>
       </div>
 
       <!-- Steps -->
       <div class="pure-u-1-3">
-        <h2>Vera Audio-Only Chat</h2>
+        <h2>PeerJS Video Chat</h2>
 
         <!-- Get local audio/video stream -->
         <div id="step1">
