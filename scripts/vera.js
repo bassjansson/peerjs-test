@@ -4,7 +4,7 @@ const SERVER_HOST = '/';
 const SERVER_PORT = 8888;
 
 const LOCAL_NUMBER_ID = Math.floor(Math.random() * 9000) + 1000;
-const LOCAL_FULL_ID = "vera" + LOCAL_NUMBER_ID.toString();
+const LOCAL_PEER_ID = "vera" + LOCAL_NUMBER_ID.toString();
 
 const LOCAL_STREAM_CONSTRAINTS = {
     audio: true,
@@ -34,9 +34,7 @@ function setup()
 
     showSetup();
 
-    spanVeraID.text(LOCAL_NUMBER_ID);
-
-    peer = new Peer(LOCAL_FULL_ID,
+    peer = new Peer(LOCAL_PEER_ID,
     {
         host: SERVER_HOST,
         port: SERVER_PORT
@@ -55,9 +53,11 @@ function setup()
 
 //========== Peer Events ==========
 
-var onPeerOpen = function()
+var onPeerOpen = function(id)
 {
     console.log("[Peer] Connected to peer server.");
+
+    spanVeraID.text(id);
 
     getLocalStream();
 };
