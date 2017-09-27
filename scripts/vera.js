@@ -1,4 +1,4 @@
-//========== Variables ==========
+//========== Constants ==========
 
 const SERVER_HOST = 'vera.bassjansson.com';
 const SERVER_PORT = 8888;
@@ -11,113 +11,100 @@ const LOCAL_STREAM_CONSTRAINTS = {
     video: true
 };
 
-var audioGameMaster = $('#audio-game-master');
-
-var divGetLocalStream = $('#div-get-local-stream');
-var divGetLocalStreamError = $('#div-get-local-stream-error');
-var divWaitForConnection = $('#div-wait-for-connection');
-var divConnected = $('#div-connected');
-
-var spanVeraID = $('#span-vera-id');
-var spanGameMasterID = $('#span-game-master-id');
-
-var buttonRetryGetLocalStream = $('#button-retry-get-local-stream');
-
-var peer = null;
-
 
 //========== Setup ==========
 
 function setup()
 {
-    console.log("[Setup] Starting setup.");
+    console.log("[Setup] Setting up Vera.");
 
-    showSetup();
+    $(function()
+    {
+        $('#button-retry-get-local-stream').click(getLocalStream);
+    })
 
-    peer = new Peer(LOCAL_PEER_ID,
+    setupPeer();
+}
+
+
+//========== Setup Peer ==========
+
+function setupPeer()
+{
+    console.log("[Peer] Setting up peer.");
+
+    window.peer = new Peer(LOCAL_PEER_ID,
     {
         host: SERVER_HOST,
         port: SERVER_PORT
     });
 
-    peer.on('open', onPeerOpen);
-    peer.on('call', onPeerMediaConnection);
-    peer.on('disconnected', onPeerDisconnected);
-    peer.on('error', onPeerError);
+    window.peer.on('open', function(id)
+    {
+        console.log("[Peer] Connected to peer server with ID: ", id);
 
-    buttonRetryGetLocalStream.addEventListener('click', getLocalStream);
+        $('#span-vera-id').text(LOCAL_NUMBER_ID);
 
-    console.log("[Setup] Setup finished.");
+        getLocalStream();
+    });
+
+    window.peer.on('call', function(mediaConnection)
+    {
+        console.log("[Peer] Received media connection, setting up media connection.");
+
+        setupMediaConnection();
+    });
+
+    window.peer.on('disconnected', function()
+    {
+        console.log("[Peer] Disconnected from peer server, trying to reconnect.");
+
+        peer.reconnect();
+    });
+
+    window.peer.on('error', function(error)
+    {
+        console.warn("[Peer] Received error: ", error);
+
+        alert(error.message);
+    });
 }
 
 
-//========== Peer Events ==========
+//========== Setup MediaConnection ==========
 
-var onPeerOpen = function(id)
+function setupMediaConnection(mediaConnection)
 {
-    console.log("[Peer] Connected to peer server.");
+    console.log("[MediaConnection] Setting up media connection.");
 
-    spanVeraID.text(id);
-
-    getLocalStream();
-};
-
-var onPeerMediaConnection = function(mediaConnection)
-{
-    console.log("[Peer] Received media connection.");
+    showConnectedWithID(mediaConnection.peer);
 
     if (window.mediaConnection)
         window.mediaConnection.close();
 
     window.mediaConnection = mediaConnection;
 
-    mediaConnection.answer(window.localStream);
-    mediaConnection.on('stream', onMediaConnectionStream);
-    mediaConnection.on('close', onMediaConnectionClose);
-    mediaConnection.on('error', onMediaConnectionError);
+    mediaConnection.on('stream', function(stream)
+    {
+        console.log("[MediaConnection] Received stream, setting stream of media object.");
 
-    spanGameMasterID.text(mediaConnection.peer);
+        setStreamOfMediaObject($('#audio-game-master'), stream);
+    });
 
-    showConnected();
-};
+    mediaConnection.on('close', function()
+    {
+        console.log("[MediaConnection] Connection closed, waiting for connecting again.");
 
-var onPeerDisconnected = function()
-{
-    console.log("[Peer] Disconnected from peer server.");
+        showWaitForConnection();
+    });
 
-    peer.reconnect();
-};
+    mediaConnection.on('error', function(error)
+    {
+        console.warn("[MediaConnection] Received error: ", error);
 
-var onPeerError = function(error)
-{
-    console.warn("[Peer] Received error: ", error);
-
-    alert(error.message);
-};
-
-
-//========== MediaConnection Events ==========
-
-var onMediaConnectionStream = function(stream)
-{
-    console.log("[MediaConnection] Received stream.");
-
-    setStreamOfMediaObject(audioGameMaster, stream);
-};
-
-var onMediaConnectionClose = function()
-{
-    console.log("[MediaConnection] Connection closed.");
-
-    showWaitForConnection();
-};
-
-var onMediaConnectionError = function(error)
-{
-    console.warn("[MediaConnection] Received error: ", error);
-
-    alert(error.message);
-};
+        alert(error.message);
+    });
+}
 
 
 //========== Get Local Stream ==========
@@ -157,53 +144,30 @@ function getLocalStream()
 
 //========== Show HTML Elements ==========
 
-function showSetup()
-{
-    divGetLocalStream.hide();
-    divWaitForConnection.hide();
-    divConnected.hide();
-}
-
 function showGetLocalStream()
 {
-    divGetLocalStream.show();
-    divGetLocalStreamError.hide();
-    divWaitForConnection.hide();
-    divConnected.hide();
+    $('#div-get-local-stream').show();
+    $('#div-get-local-stream-error').hide();
+    $('#div-wait-for-connection').hide();
+    $('#div-connected').hide();
 }
 
 function showGetLocalStreamError()
 {
-    divGetLocalStreamError.show();
+    $('#div-get-local-stream-error').show();
 }
 
 function showWaitForConnection()
 {
-    divGetLocalStream.hide();
-    divWaitForConnection.show();
-    divConnected.hide();
+    $('#div-get-local-stream').hide();
+    $('#div-wait-for-connection').show();
+    $('#div-connected').hide();
 }
 
-function showConnected()
+function showConnectedWithID(id)
 {
-    divGetLocalStream.hide();
-    divWaitForConnection.hide();
-    divConnected.show();
-}
-
-
-//========== Utils ==========
-
-function setStreamOfMediaObject(mediaObject, stream)
-{
-    // Older browsers may not have srcObject
-    if ("srcObject" in mediaObject)
-    {
-        mediaObject.srcObject = stream;
-    }
-    else
-    {
-        // Avoid using this in new browsers, as it is going away
-        mediaObject.src = window.URL.createObjectURL(stream);
-    }
+    $('#div-get-local-stream').hide();
+    $('#div-wait-for-connection').hide();
+    $('#div-connected').show();
+    $('#span-game-master-id').text(id);
 }

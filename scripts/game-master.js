@@ -1,107 +1,68 @@
-//========== Variables ==========
+//========== Constants ==========
 
 const SERVER_HOST = 'vera.bassjansson.com';
 const SERVER_PORT = 8888;
 
 const LOCAL_NUMBER_ID = Math.floor(Math.random() * 9000) + 1000;
-const LOCAL_PEER_ID = "game-master" + LOCAL_NUMBER_ID.toString();
+const LOCAL_PEER_ID = "gama" + LOCAL_NUMBER_ID.toString();
 
 const LOCAL_STREAM_CONSTRAINTS = {
     audio: true,
     video: false
 };
 
-var videoVera = $('#video-vera');
-
-var divGetLocalStream = $('#div-get-local-stream');
-var divGetLocalStreamError = $('#div-get-local-stream-error');
-var divEstablishConnection = $('#div-establish-connection');
-var divConnected = $('#div-connected');
-
-var spanGameMasterID = $('#span-game-master-id');
-var spanVeraID = $('#span-vera-id');
-var spanConnectionStatus = $('#span-connection-status');
-
-var buttonRetryGetLocalStream = $('#button-retry-get-local-stream');
-var buttonConnect = $('#button-connect');
-var buttonDisconnect = $('#button-disconnect');
-
-var inputVeraID = $('#input-vera-id');
-
-var peer = null;
-
 
 //========== Setup ==========
 
 function setup()
 {
-    console.log("[Setup] Starting setup.");
+    console.log("[Setup] Setting up Game Master.");
 
-    showSetup();
+    $(function()
+    {
+        $('#button-retry-get-local-stream').click(getLocalStream);
+        $('#button-connect').click(connectToVera);
+        $('#button-disconnect').click(disconnectFromVera);
+    })
 
-    peer = new Peer(LOCAL_PEER_ID,
+    setupPeer();
+}
+
+
+//========== Setup Peer ==========
+
+function setupPeer()
+{
+    console.log("[Peer] Setting up peer.");
+
+    window.peer = new Peer(LOCAL_PEER_ID,
     {
         host: SERVER_HOST,
         port: SERVER_PORT
     });
 
-    peer.on('open', onPeerOpen);
-    peer.on('call', onPeerMediaConnection);
-    peer.on('disconnected', onPeerDisconnected);
-    peer.on('error', onPeerError);
+    window.peer.on('open', function(id)
+    {
+        console.log("[Peer] Connected to peer server with ID: ", id);
 
-    buttonRetryGetLocalStream.addEventListener('click', getLocalStream);
-    buttonConnect.addEventListener('click', connectToVera);
-    buttonDisconnect.addEventListener('click', disconnectFromVera);
+        $('#span-game-master-id').text(LOCAL_NUMBER_ID);
 
-    console.log("[Setup] Setup finished.");
-}
+        getLocalStream();
+    });
 
+    window.peer.on('disconnected', function()
+    {
+        console.log("[Peer] Disconnected from peer server, trying to reconnect.");
 
-//========== Peer Events ==========
+        peer.reconnect();
+    });
 
-var onPeerOpen = function(id)
-{
-    console.log("[Peer] Connected to peer server.");
+    window.peer.on('error', function(error)
+    {
+        console.warn("[Peer] Received error: ", error);
 
-    spanGameMasterID.text(id);
-
-    getLocalStream();
-};
-
-var onPeerDisconnected = function()
-{
-    console.log("[Peer] Disconnected from peer server.");
-
-    peer.reconnect();
-};
-
-var onPeerError = function(error)
-{
-    console.warn("[Peer] Received error: ", error);
-
-    alert(error.message);
-};
-
-
-//========== Connect to Vera ==========
-
-var connectToVera = function()
-{
-    console.log("[Connect] Connecting to Vera.");
-
-    var mediaConnection = peer.call(inputVeraID.val(), window.localStream);
-
-    setupMediaConnection(mediaConnection);
-}
-
-var disconnectFromVera = function()
-{
-    console.log("[Connect] Disconnecting from Vera.");
-
-    window.mediaConnection.close();
-
-    showEstablishConnection();
+        alert(error.message);
+    });
 }
 
 
@@ -109,51 +70,63 @@ var disconnectFromVera = function()
 
 function setupMediaConnection(mediaConnection)
 {
-    console.log("[MediaConnection] Setup media connection.");
+    console.log("[MediaConnection] Setting up media connection.");
+
+    showConnectedWithID(mediaConnection.peer);
 
     if (window.mediaConnection)
         window.mediaConnection.close();
 
     window.mediaConnection = mediaConnection;
 
-    mediaConnection.on('stream', onMediaConnectionStream);
-    mediaConnection.on('close', onMediaConnectionClose);
-    mediaConnection.on('error', onMediaConnectionError);
+    mediaConnection.on('stream', function(stream)
+    {
+        console.log("[MediaConnection] Received stream, setting stream of media object.");
 
-    spanVeraID.text(mediaConnection.peer);
+        $('#span-connection-status').text("CONNECTED!");
+        $('#span-connection-status').css('color', 'green');
 
-    showConnected();
+        setStreamOfMediaObject(document.querySelector('#video-vera'), stream);
+    });
+
+    mediaConnection.on('close', function()
+    {
+        console.log("[MediaConnection] Connection closed, trying to connect again.");
+
+        connectToVera();
+    });
+
+    mediaConnection.on('error', function(error)
+    {
+        console.warn("[MediaConnection] Received error: ", error);
+
+        alert(error.message);
+    });
 }
 
 
-//========== MediaConnection Events ==========
+//========== Connect to Vera ==========
 
-var onMediaConnectionStream = function(stream)
+function connectToVera()
 {
-    console.log("[MediaConnection] Received stream, setting stream of media object.");
+    console.log("[Connect] Connecting to Vera.");
 
-    spanConnectionStatus.text("CONNECTED!");
-    spanConnectionStatus.style.color('green');
+    $('#span-connection-status').text("CONNECTING...");
+    $('#span-connection-status').css('color', 'red');
 
-    setStreamOfMediaObject(videoVera, stream);
-};
+    var mediaConnection = window.peer.call("vera" + $('#input-vera-id').val(), window.localStream);
 
-var onMediaConnectionClose = function()
+    setupMediaConnection(mediaConnection);
+}
+
+function disconnectFromVera()
 {
-    console.log("[MediaConnection] Connection closed, trying to connect again.");
+    console.log("[Connect] Disconnecting from Vera.");
 
-    spanConnectionStatus.text("RECONNECTING...");
-    spanConnectionStatus.style.color('red');
+    window.mediaConnection.close();
 
-    connectToVera();
-};
-
-var onMediaConnectionError = function(error)
-{
-    console.warn("[MediaConnection] Received error: ", error);
-
-    alert(error.message);
-};
+    showEstablishConnection();
+}
 
 
 //========== Get Local Stream ==========
@@ -171,7 +144,7 @@ function getLocalStream()
             console.log('[LocalStream] Stream got inactive.');
         };
 
-        console.log('[LocalStream] Got stream with constraints: ', stream.constraints);
+        console.log('[LocalStream] Got stream with constraints: ', LOCAL_STREAM_CONSTRAINTS);
         console.log('[LocalStream] Stream uses audio device: ', stream.getAudioTracks()[0].label);
 
         showEstablishConnection();
@@ -193,53 +166,30 @@ function getLocalStream()
 
 //========== Show HTML Elements ==========
 
-function showSetup()
-{
-    divGetLocalStream.hide();
-    divEstablishConnection.hide();
-    divConnected.hide();
-}
-
 function showGetLocalStream()
 {
-    divGetLocalStream.show();
-    divGetLocalStreamError.hide();
-    divEstablishConnection.hide();
-    divConnected.hide();
+    $('#div-get-local-stream').show();
+    $('#div-get-local-stream-error').hide();
+    $('#div-establish-connection').hide();
+    $('#div-connected').hide();
 }
 
 function showGetLocalStreamError()
 {
-    divGetLocalStreamError.show();
+    $('#div-get-local-stream-error').show();
 }
 
 function showEstablishConnection()
 {
-    divGetLocalStream.hide();
-    divEstablishConnection.show();
-    divConnected.hide();
+    $('#div-get-local-stream').hide();
+    $('#div-establish-connection').show();
+    $('#div-connected').hide();
 }
 
-function showConnected()
+function showConnectedWithID(id)
 {
-    divGetLocalStream.hide();
-    divEstablishConnection.hide();
-    divConnected.show();
-}
-
-
-//========== Utils ==========
-
-function setStreamOfMediaObject(mediaObject, stream)
-{
-    // Older browsers may not have srcObject
-    if ("srcObject" in mediaObject)
-    {
-        mediaObject.srcObject = stream;
-    }
-    else
-    {
-        // Avoid using this in new browsers, as it is going away
-        mediaObject.src = window.URL.createObjectURL(stream);
-    }
+    $('#div-get-local-stream').hide();
+    $('#div-establish-connection').hide();
+    $('#div-connected').show();
+    $('#span-vera-id').text(id);
 }
