@@ -21,3 +21,12 @@ Execute this command to kill all node servers:
 ```bash
 pkill node
 ```
+
+### List Running Processes
+```bash
+ps -A
+```
+OR
+```bash
+ps aux
+```
