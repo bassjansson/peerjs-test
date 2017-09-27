@@ -8,7 +8,7 @@ const LOCAL_PEER_ID = "vera" + LOCAL_NUMBER_ID.toString();
 
 const LOCAL_STREAM_CONSTRAINTS = {
     audio: true,
-    video: true
+    video: false
 };
 
 
@@ -90,7 +90,7 @@ function setupMediaConnection(mediaConnection)
     {
         console.log("[MediaConnection] Received stream, setting stream of media object.");
 
-        setStreamOfMediaObject($('#audio-game-master'), stream);
+        setStreamOfMediaObject(document.querySelector('#audio-game-master'), stream);
     });
 
     mediaConnection.on('close', function()

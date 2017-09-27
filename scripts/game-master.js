@@ -86,14 +86,14 @@ function setupMediaConnection(mediaConnection)
         $('#span-connection-status').text("CONNECTED!");
         $('#span-connection-status').css('color', 'green');
 
-        setStreamOfMediaObject(document.querySelector('#video-vera'), stream);
+        setStreamOfMediaObject(document.querySelector('#audio-vera'), stream);
     });
 
     mediaConnection.on('close', function()
     {
         console.log("[MediaConnection] Connection closed, trying to connect again.");
 
-        connectToVera();
+        showEstablishConnection();
     });
 
     mediaConnection.on('error', function(error)
