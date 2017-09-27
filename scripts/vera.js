@@ -54,7 +54,7 @@ function setupPeer()
 
         mediaConnection.answer(window.localStream);
 
-        setupMediaConnection();
+        setupMediaConnection(mediaConnection);
     });
 
     window.peer.on('disconnected', function()
