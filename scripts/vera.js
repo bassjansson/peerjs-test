@@ -52,6 +52,8 @@ function setupPeer()
     {
         console.log("[Peer] Received media connection, setting up media connection.");
 
+        mediaConnection.answer(window.localStream);
+
         setupMediaConnection();
     });
 
@@ -59,7 +61,7 @@ function setupPeer()
     {
         console.log("[Peer] Disconnected from peer server, trying to reconnect.");
 
-        peer.reconnect();
+        window.peer.reconnect();
     });
 
     window.peer.on('error', function(error)
