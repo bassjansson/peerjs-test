@@ -1,4 +1,9 @@
-# Vera
+# Peer.js Test
+
+## Peer.js
+Website: http://peerjs.com/
+Github: https://github.com/peers/peerjs
+        https://github.com/Simplici/pearjs
 
 ## Node Server
 
