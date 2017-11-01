@@ -2,7 +2,7 @@
 
 ## Peer.js
 Website: http://peerjs.com/  
-Github: https://github.com/peers/peerjs
+Github: https://github.com/peers/peerjs  
 (including adapter.js: https://github.com/Simplici/pearjs)
 
 ## Node Server
